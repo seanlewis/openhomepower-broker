@@ -79,13 +79,17 @@ the CA. (The battery stays on 1883 — it can't do TLS.)
 ## Rollback
 
 Pointing at a different broker is **only a config change** (`we2.mqtt.*`) — it
-never touches the gateway's firmware — so rolling back is just restoring those
-values.
+never touches the gateway's firmware — so rolling back is just restoring the
+original config.
 
-**Before you repoint, save your current settings.** Run `uci show we2` and keep
-the output somewhere safe (e.g. paste it into a note on your computer). To roll
-back, set `we2.mqtt.host` / `port` / `user` / `pwd` back to those values and
-`uci commit we2 && /etc/init.d/we2 restart`.
+The repoint commands (`provision-device.sh` prints them) back up your original
+config on the gateway first — `[ -f /etc/config/we2.orig ] || cp /etc/config/we2
+/etc/config/we2.orig` — so the snapshot happens automatically, not as a step you
+have to remember. To roll back:
+
+```sh
+cp /etc/config/we2.orig /etc/config/we2 && /etc/init.d/we2 restart
+```
 
 ## Licence
 

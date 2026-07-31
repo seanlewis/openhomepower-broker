@@ -32,8 +32,10 @@ cat <<EOF
 Provisioned device '$SERIAL'. The ACL confines it to Enertek/$SERIAL/# — it
 cannot see or control any other device.
 
-On the gateway (ssh -p 34522 homepower@<gateway-ip>), run:
+On the gateway (ssh -p 34522 homepower@<gateway-ip>), run. The first line backs
+up your current config once, so rollback needs nothing memorised:
 
+  [ -f /etc/config/we2.orig ] || cp /etc/config/we2 /etc/config/we2.orig
   uci set we2.mqtt.host='<this-broker-host-or-ip>'
   uci set we2.mqtt.port='1883'
   uci set we2.mqtt.user='$SERIAL'
@@ -41,8 +43,9 @@ On the gateway (ssh -p 34522 homepower@<gateway-ip>), run:
   uci commit we2
   /etc/init.d/we2 restart
 
-To roll back, restore your original we2.mqtt.* values (run 'uci show we2' and
-note them BEFORE repointing), then: uci commit we2; /etc/init.d/we2 restart
+To roll back:
+
+  cp /etc/config/we2.orig /etc/config/we2 && /etc/init.d/we2 restart
 
 In Home Assistant → OpenHomepower → Configure, set the control broker host to
 this broker and the username/password to the serial and the password above.

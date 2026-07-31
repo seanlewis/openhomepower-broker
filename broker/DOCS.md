@@ -27,9 +27,11 @@ grep -oE 'Enertek/[0-9]+/' /tmp/wemonitor.log | head -1
 ## 2. Point the battery at this broker
 
 SSH into the gateway and repoint its daemon (use **this Home Assistant host's IP**
-and port **1884**, with the serial + password from step 1):
+and port **1884**, with the serial + password from step 1). The first line backs
+up your current config, so rollback is one command later:
 
 ```sh
+[ -f /etc/config/we2.orig ] || cp /etc/config/we2 /etc/config/we2.orig
 uci set we2.mqtt.host='<home-assistant-ip>'
 uci set we2.mqtt.port='1884'
 uci set we2.mqtt.user='1234567890'
@@ -38,9 +40,11 @@ uci commit we2
 /etc/init.d/we2 restart
 ```
 
-To roll back, restore your original settings. **Before repointing**, note them
-with `uci show we2`; then set `we2.mqtt.host/port/user/pwd` back to those values
-and `uci commit we2 && /etc/init.d/we2 restart`.
+To roll back, restore that backup:
+
+```sh
+cp /etc/config/we2.orig /etc/config/we2 && /etc/init.d/we2 restart
+```
 
 ## 3. Point the OpenHomepower integration at it
 
