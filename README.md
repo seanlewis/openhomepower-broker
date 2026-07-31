@@ -1,4 +1,4 @@
-# OpenHomepower Broker
+# OpenHomepower MQTT Broker
 
 **A secure, self-hostable MQTT broker for Energizer Homepower batteries — run
 your own, instead of depending on the vendor cloud.**
@@ -7,7 +7,7 @@ your own, instead of depending on the vendor cloud.**
 
 Enertek has walked away from the Homepower — the product is discontinued and its
 cloud has been unreliable, offline for extended periods at a time. This project
-lets you run your **own** MQTT broker and point your battery at it, so it no
+lets you run your **own** local MQTT broker and point your battery at it, so it no
 longer depends on the vendor's servers: control keeps working when their cloud is
 down, everything stays on your own network, and each device gets its own
 credentials and isolated topics.
@@ -62,12 +62,13 @@ Find your topic serial on the gateway:
 ## Important: the device speaks plaintext only
 
 The Homepower gateway daemon links no crypto library — **it cannot do TLS.** So
-the device→broker link (port 1883) is plaintext. That's fine on a **trusted LAN**.
-For anything beyond your own network — or a hosted deployment — do **not** expose
-1883 to the internet; put the hop inside a **VPN or tunnel** (WireGuard,
-Tailscale, an `stunnel`/relay on the gateway's network). The TLS listener (8883)
-is for clients that *can* do TLS — Home Assistant, the app, dashboards — not the
-battery.
+the device→broker link (port 1883) is plaintext. 
+
+That's fine on a **trusted LAN**. For anything beyond your own network — or a 
+hosted deployment — do **not** expose 1883 to the internet; put the hop inside a 
+**VPN or tunnel** (WireGuard, Tailscale, an `stunnel`/relay on the gateway's 
+network). The TLS listener (8883) is for clients that *can* do TLS — Home 
+Assistant, the app, dashboards — not the battery.
 
 ## Single-user vs. multi-tenant
 
