@@ -12,6 +12,10 @@ longer depends on the vendor's servers: control keeps working when their cloud i
 down, everything stays on your own network, and each device gets its own
 credentials and isolated topics.
 
+Pair it with the [**OpenHomepower Home Assistant integration**](https://github.com/seanlewis/openhomepower-hass)
+to run battery control entirely on your own network — the integration sends the
+commands, this broker is the local transport that carries them.
+
 ## Security
 
 - **Per-device credentials** — every device authenticates with its own login.

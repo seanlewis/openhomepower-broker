@@ -48,8 +48,9 @@ cp /etc/config/we2.orig /etc/config/we2 && /etc/init.d/we2 restart
 
 ## 3. Point the OpenHomepower integration at it
 
-In **OpenHomepower → Configure**, set the control broker to this host / port
-`1884` and the same serial + password.
+Install the [OpenHomepower Home Assistant integration](https://github.com/seanlewis/openhomepower-hass)
+if you haven't already. In **OpenHomepower → Configure**, set the control broker
+to this host / port `1884` and the same serial + password.
 
 ## Notes
 
