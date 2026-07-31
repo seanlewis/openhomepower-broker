@@ -1,0 +1,28 @@
+name: OpenHomepower Secure Broker
+version: "0.1.0"
+slug: openhomepower_broker
+description: >-
+  A secure MQTT broker for Energizer Homepower batteries — per-device
+  credentials and per-device isolation, replacing Enertek's abandoned cloud.
+url: https://github.com/seanlewis/openhomepower-broker
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - armhf
+  - i386
+startup: application
+boot: auto
+init: false
+# A separate port from the default Mosquitto add-on (1883), so this runs
+# alongside it without touching the broker Zigbee2MQTT uses.
+ports:
+  1884/tcp: 1884
+ports_description:
+  1884/tcp: Plaintext MQTT for the battery — keep on a trusted network
+options:
+  devices: []
+schema:
+  devices:
+    - serial: match(^[0-9]+$)
+      password: password

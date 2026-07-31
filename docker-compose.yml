@@ -1,0 +1,12 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: openhomepower-broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"        # plaintext MQTT for the gateway daemon — TRUSTED NETWORK ONLY
+      # - "8883:8883"      # TLS for HA / app / dashboards (see README, then uncomment)
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log

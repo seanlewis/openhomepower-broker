@@ -1,0 +1,5 @@
+# Runtime state and secrets — never commit these.
+mosquitto/config/passwordfile
+mosquitto/config/certs/
+mosquitto/data/
+mosquitto/log/
