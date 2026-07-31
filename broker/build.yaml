@@ -1,0 +1,6 @@
+build_from:
+  aarch64: eclipse-mosquitto:2
+  amd64: eclipse-mosquitto:2
+  armv7: eclipse-mosquitto:2
+  armhf: eclipse-mosquitto:2
+  i386: eclipse-mosquitto:2
