@@ -70,20 +70,6 @@ hosted deployment — do **not** expose 1883 to the internet; put the hop inside
 network). The TLS listener (8883) is for clients that *can* do TLS — Home 
 Assistant, the app, dashboards — not the battery.
 
-## Single-user vs. multi-tenant
-
-- **Single-user (self-host, recommended):** one device, your own broker on your
-  LAN. Authenticate Home Assistant/the app as the device serial too — same scope,
-  nothing else to configure. With a single device the per-device creds + ACL are
-  simply belt-and-braces.
-- **Multi-tenant / hosted:** the same package scales — every device already gets
-  its own credential and ACL scope. To offer it as a service you'd add: a
-  provisioning/signup flow, per-operator accounts (own ACL rules rather than
-  reusing a device serial), TLS + a tunnel for the plaintext device leg, uptime
-  monitoring, and — importantly — the operational and trust responsibilities of
-  holding control access to other people's batteries. Start self-hostable; grow
-  into hosted deliberately.
-
 ## TLS (optional, for capable clients)
 
 Generate a CA + server cert into `mosquitto/config/certs/`, uncomment the `8883`
@@ -92,9 +78,14 @@ the CA. (The battery stays on 1883 — it can't do TLS.)
 
 ## Rollback
 
-Repointing is fully reversible. **Before** you repoint, note your current
-settings with `uci show we2`; to roll back, set `we2.mqtt.host/port/user/pwd`
-back to those values and `uci commit we2 && /etc/init.d/we2 restart`.
+Pointing at a different broker is **only a config change** (`we2.mqtt.*`) — it
+never touches the gateway's firmware — so rolling back is just restoring those
+values.
+
+**Before you repoint, save your current settings.** Run `uci show we2` and keep
+the output somewhere safe (e.g. paste it into a note on your computer). To roll
+back, set `we2.mqtt.host` / `port` / `user` / `pwd` back to those values and
+`uci commit we2 && /etc/init.d/we2 restart`.
 
 ## Licence
 
