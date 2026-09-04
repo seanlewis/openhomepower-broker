@@ -42,10 +42,9 @@ grep -oE 'Enertek/[0-9]+/' /tmp/wemonitor.log | head -1
 
 The gateway daemon's MQTT username and password are **compiled into its
 firmware**, not read from any config file — so you can't change them, and you
-can't repoint the battery with a config edit. Recover them from the gateway
-(they appear in the daemon's boot log and binary), and put them in
-`battery_login`. On a single-household broker every Homepower shares the same
-firmware login; that's fine — the ACL still confines it to your serial(s).
+can't repoint the battery with a config edit. Recover them from your gateway
+(the daemon prints its username in the startup log) and put them in
+`battery_login`. The ACL confines that login to your configured serial(s).
 
 ## 2. Point the battery at this broker (network redirect)
 

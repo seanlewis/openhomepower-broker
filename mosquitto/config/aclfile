@@ -13,4 +13,4 @@ pattern readwrite Enertek/%u/#
 # For a MULTI-tenant / hosted broker, give operator or per-user accounts their
 # own explicit rules instead of reusing a device serial, e.g.:
 #   user my-dashboard
-#   topic read Enertek/2103200212/#
+#   topic read Enertek/1234567890/#
