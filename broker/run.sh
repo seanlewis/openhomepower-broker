@@ -18,6 +18,7 @@ ACLFILE=/etc/openhomepower/aclfile
 BLTOPICS=/tmp/ohp_battery_topics       # per-serial rules for the battery login
 
 : > "$PWFILE"
+chmod 600 "$PWFILE"          # mosquitto refuses a world-readable password file
 : > "$BLTOPICS"
 
 # --- ACL header: serial-named clients confined by the pattern ----------------

@@ -1,5 +1,5 @@
 name: OpenHomepower Secure Broker
-version: "0.2.0"
+version: "0.2.1"
 slug: openhomepower_broker
 description: >-
   A secure MQTT broker for Energizer Homepower batteries — per-device
