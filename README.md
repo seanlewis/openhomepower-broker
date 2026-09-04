@@ -36,7 +36,8 @@ commands, this broker is the local transport that carries them.
 - **Home Assistant OS / Supervised → add-on (one click).** Add-ons aren't
   distributed via HACS, so add this repo under **Settings → Add-ons → ⋮ →
   Repositories**, then install **OpenHomepower Secure Broker**. It runs on port
-  **1884**, alongside — and never touching — the Mosquitto that Zigbee2MQTT uses.
+  **1885** — clear of the Mosquitto add-on (which uses 1883/1884/8883/8884) and
+  never touching the broker Zigbee2MQTT uses.
   Configure your device(s) in its Configuration tab. See
   [`broker/DOCS.md`](broker/DOCS.md).
 - **Docker (Proxmox VM/LXC, NAS, any Linux) → `docker compose`** — below.

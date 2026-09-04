@@ -1,5 +1,5 @@
 name: OpenHomepower Secure Broker
-version: "0.1.0"
+version: "0.1.1"
 slug: openhomepower_broker
 description: >-
   A secure MQTT broker for Energizer Homepower batteries — per-device
@@ -14,12 +14,13 @@ arch:
 startup: application
 boot: auto
 init: false
-# A separate port from the default Mosquitto add-on (1883), so this runs
-# alongside it without touching the broker Zigbee2MQTT uses.
+# Port 1885: clear of the default Mosquitto add-on, which occupies 1883 (MQTT),
+# 1884 (WebSockets) and 8883/8884 (TLS). This runs alongside it without touching
+# the broker Zigbee2MQTT uses.
 ports:
-  1884/tcp: 1884
+  1885/tcp: 1885
 ports_description:
-  1884/tcp: Plaintext MQTT for the battery — keep on a trusted network
+  1885/tcp: Plaintext MQTT for the battery — keep on a trusted network
 options:
   devices: []
 schema:
