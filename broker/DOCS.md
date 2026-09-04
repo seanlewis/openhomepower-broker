@@ -6,57 +6,70 @@ broker Zigbee2MQTT uses — and it gives each battery **its own credentials** an
 **its own isolated topics**, so your battery no longer depends on the vendor
 cloud.
 
-## 1. Add your battery
+## 1. Configure your battery
 
-In the **Configuration** tab, add a device:
+In the **Configuration** tab:
 
 ```yaml
 devices:
-  - serial: "1234567890"      # your MQTT topic serial
-    password: "choose-a-strong-one"
+  - serial: "1234567890"              # your MQTT topic serial
+    password: "choose-a-strong-one"   # the login Home Assistant / the app use
+battery_login:
+  username: "..."                     # the login the battery firmware uses
+  password: "..."                     # (see "How the battery logs in" below)
 ```
 
-Find the serial on the gateway (SSH in, `homepower` / `123456`):
+- **`devices`** — one entry per battery. `serial` is the topic serial (the
+  `<serial>` in `Enertek/<serial>/…`); `password` is what **Home Assistant and
+  the app** log in with (their username is the serial).
+- **`battery_login`** — the credential the **battery's own firmware** uses. The
+  Homepower gateway authenticates with a fixed username baked into its firmware
+  (it is *not* the serial), so it can't be confined by serial the way clients
+  are. Set it here and the broker grants that login read/write on exactly your
+  configured serial(s) — nothing else. Leave it blank if no battery connects
+  directly (clients only).
+
+Find your topic serial on the gateway (SSH in, `homepower` / `123456`):
 
 ```sh
 grep -oE 'Enertek/[0-9]+/' /tmp/wemonitor.log | head -1
 ```
 
-**Start** (or restart) the add-on after changing devices.
+**Start** (or restart) the add-on after any change. The log prints a
+`provisioned …` line for each login.
 
-## 2. Point the battery at this broker
+### How the battery logs in
 
-SSH into the gateway and repoint its daemon (use **this Home Assistant host's IP**
-and port **1885**, with the serial + password from step 1). The first line backs
-up your current config, so rollback is one command later:
+The gateway daemon's MQTT username and password are **compiled into its
+firmware**, not read from any config file — so you can't change them, and you
+can't repoint the battery with a config edit. Recover them from the gateway
+(they appear in the daemon's boot log and binary), and put them in
+`battery_login`. On a single-household broker every Homepower shares the same
+firmware login; that's fine — the ACL still confines it to your serial(s).
 
-```sh
-[ -f /etc/config/we2.orig ] || cp /etc/config/we2 /etc/config/we2.orig
-uci set we2.mqtt.host='<home-assistant-ip>'
-uci set we2.mqtt.port='1885'
-uci set we2.mqtt.user='1234567890'
-uci set we2.mqtt.pwd='choose-a-strong-one'
-uci commit we2
-/etc/init.d/we2 restart
-```
+## 2. Point the battery at this broker (network redirect)
 
-To roll back, restore that backup:
-
-```sh
-cp /etc/config/we2.orig /etc/config/we2 && /etc/init.d/we2 restart
-```
+Because the broker host is hardcoded in the firmware, you redirect the battery
+at the **network layer**, not by config — one reversible `iptables` rule on the
+gateway that sends its MQTT traffic to this broker. The exact commands (and how
+to make them persist and roll back) are in the main
+[README](https://github.com/seanlewis/openhomepower-broker#readme) → **Repoint
+the battery**.
 
 ## 3. Point the OpenHomepower integration at it
 
-Install the [OpenHomepower Home Assistant integration](https://github.com/seanlewis/openhomepower-hass)
-if you haven't already. In **OpenHomepower → Configure**, set the control broker
-to this host / port `1885` and the same serial + password.
+In **OpenHomepower → Configure**, set the broker **host** to this Home Assistant
+host, **port `1885`**, and the **username/password** to a `devices` serial and
+its password.
 
 ## Notes
 
-- **Plaintext, trusted network only.** The battery's firmware can't do TLS, so the
-  device → broker link is plaintext. That's fine on your home LAN. Don't expose
-  port 1885 to the internet; for remote access use a VPN.
-- **Isolation:** the ACL `pattern readwrite Enertek/%u/#` confines every device
-  to `Enertek/<its-serial>/#`. A device can't see or control any other.
-- Once repointed, control no longer depends on Enertek's cloud being up.
+- **Plaintext, trusted network only.** The battery's firmware can't do TLS, so
+  the device → broker link is plaintext. Fine on your home LAN. Don't expose
+  1885 to the internet; for remote access use a VPN.
+- **Isolation:** serial-named client logins are confined to `Enertek/<serial>/#`
+  by `pattern readwrite Enertek/%u/#`; the shared battery login is confined to
+  your configured serial(s) by explicit rules. No login can reach another
+  household's topics.
+- Once redirected, monitoring **and** control no longer depend on Enertek's
+  cloud being up.

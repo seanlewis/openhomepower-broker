@@ -1,3 +1,0 @@
-# Each device's MQTT username is its topic serial, so this one rule confines
-# every device to Enertek/<its-serial>/# — no cross-device read or write.
-pattern readwrite Enertek/%u/#

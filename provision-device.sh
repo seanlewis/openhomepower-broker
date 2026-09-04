@@ -29,24 +29,22 @@ docker compose kill -s HUP mosquitto >/dev/null 2>&1 || docker compose restart m
 
 cat <<EOF
 
-Provisioned device '$SERIAL'. The ACL confines it to Enertek/$SERIAL/# — it
-cannot see or control any other device.
+Provisioned client login '$SERIAL' (password: $PASS). The ACL confines it to
+Enertek/$SERIAL/# — it cannot see or control any other device. Use these in
+Home Assistant → OpenHomepower → Configure (host = this broker, port 1883).
 
-On the gateway (ssh -p 34522 homepower@<gateway-ip>), run. The first line backs
-up your current config once, so rollback needs nothing memorised:
+Two more steps to bring the BATTERY onto this broker:
 
-  [ -f /etc/config/we2.orig ] || cp /etc/config/we2 /etc/config/we2.orig
-  uci set we2.mqtt.host='<this-broker-host-or-ip>'
-  uci set we2.mqtt.port='1883'
-  uci set we2.mqtt.user='$SERIAL'
-  uci set we2.mqtt.pwd='$PASS'
-  uci commit we2
-  /etc/init.d/we2 restart
+  1. Provision the battery's firmware login (it authenticates with a fixed
+     username baked into the firmware, NOT its serial). Add a user + an ACL
+     rule scoped to this serial, e.g.:
+       mosquitto_passwd -b mosquitto/config/passwordfile <fw-user> <fw-pass>
+     then in mosquitto/config/aclfile:
+       user <fw-user>
+       topic readwrite Enertek/$SERIAL/#
+     and restart the broker.
 
-To roll back:
-
-  cp /etc/config/we2.orig /etc/config/we2 && /etc/init.d/we2 restart
-
-In Home Assistant → OpenHomepower → Configure, set the control broker host to
-this broker and the username/password to the serial and the password above.
+  2. Redirect the gateway at the network layer — the broker host is hardcoded
+     in the firmware, so a config edit won't move it. See the README →
+     "Repoint the battery" for the reversible iptables rule.
 EOF

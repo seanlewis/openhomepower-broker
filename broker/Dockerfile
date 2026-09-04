@@ -6,8 +6,9 @@ FROM ${BUILD_FROM}
 # builder the broker binary wasn't found ("mosquitto: not found"), so pin it here.
 RUN apk add --no-cache jq mosquitto mosquitto-clients
 
+# mosquitto.conf also creates /etc/openhomepower/; run.sh generates the aclfile
+# there at start (it depends on the configured serials), so it isn't copied in.
 COPY mosquitto.conf /etc/openhomepower/mosquitto.conf
-COPY aclfile /etc/openhomepower/aclfile
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 

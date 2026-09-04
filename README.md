@@ -57,9 +57,10 @@ chmod +x provision-device.sh
 ./provision-device.sh 1234567890        # your device's TOPIC serial (from Enertek/<serial>/…)
 ```
 
-`provision-device.sh` creates a per-device credential and prints the exact
-`uci` commands to repoint your gateway at this broker (and the rollback). It
-also tells you what to enter in Home Assistant → OpenHomepower → Configure.
+`provision-device.sh` creates a per-device (client) credential and tells you
+what to enter in Home Assistant → OpenHomepower → Configure. You also need the
+battery's own **firmware login** on the broker and a network redirect on the
+gateway — see *Repoint the battery* below.
 
 Find your topic serial on the gateway:
 `grep -oE 'Enertek/[0-9]+/' /tmp/wemonitor.log | head -1`.
@@ -81,19 +82,35 @@ Generate a CA + server cert into `mosquitto/config/certs/`, uncomment the `8883`
 block in `mosquitto/config/mosquitto.conf`, and point HA/the app at `8883` with
 the CA. (The battery stays on 1883 — it can't do TLS.)
 
-## Rollback
+## Repoint the battery
 
-Pointing at a different broker is **only a config change** (`we2.mqtt.*`) — it
-never touches the gateway's firmware — so rolling back is just restoring the
-original config.
+The gateway daemon's broker host **and** login are compiled into its firmware —
+they are **not** read from any config file (editing `/etc/config/we2` does
+nothing). So the battery is redirected at the **network layer**: one `iptables`
+rule on the gateway rewrites its outbound MQTT to your broker.
 
-The repoint commands (`provision-device.sh` prints them) back up your original
-config on the gateway first — `[ -f /etc/config/we2.orig ] || cp /etc/config/we2
-/etc/config/we2.orig` — so the snapshot happens automatically, not as a step you
-have to remember. To roll back:
+First provision the battery's firmware login on the broker (the add-on's
+`battery_login`, or a matching user + ACL on the Docker route). Then, on the
+gateway (`ssh -p 34522 homepower@<gateway-ip>`):
 
 ```sh
-cp /etc/config/we2.orig /etc/config/we2 && /etc/init.d/we2 restart
+# Redirect the daemon's outbound MQTT (port 1884) to your broker.
+# <broker-host>:<port> = your broker, e.g. 192.168.1.50:1885 (add-on) or :1883 (Docker).
+iptables -t nat -A OUTPUT -p tcp --dport 1884 -j DNAT --to-destination <broker-host>:<port>
+
+# Make it persist across reboots (OpenWrt runs /etc/firewall.user on every firewall start):
+echo "iptables -t nat -A OUTPUT -p tcp --dport 1884 -j DNAT --to-destination <broker-host>:<port>" >> /etc/firewall.user
+
+/etc/init.d/we2 restart      # reconnect the daemon so it takes the redirect
+```
+
+Nothing is written to the firmware and no config file is changed, so **rollback**
+is just removing the rule:
+
+```sh
+sed -i '/--dport 1884 -j DNAT/d' /etc/firewall.user
+iptables -t nat -D OUTPUT -p tcp --dport 1884 -j DNAT --to-destination <broker-host>:<port>
+/etc/init.d/we2 restart      # back to the vendor broker
 ```
 
 ## Licence

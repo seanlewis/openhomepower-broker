@@ -1,5 +1,5 @@
 name: OpenHomepower Secure Broker
-version: "0.1.2"
+version: "0.2.0"
 slug: openhomepower_broker
 description: >-
   A secure MQTT broker for Energizer Homepower batteries — per-device
@@ -23,7 +23,13 @@ ports_description:
   1885/tcp: Plaintext MQTT for the battery — keep on a trusted network
 options:
   devices: []
+  battery_login:
+    username: ""
+    password: ""
 schema:
   devices:
     - serial: match(^[0-9]+$)
       password: password
+  battery_login:
+    username: str?
+    password: password?
