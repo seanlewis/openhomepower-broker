@@ -5,7 +5,7 @@
 # Two kinds of login:
 #  * per-serial CLIENT logins (Home Assistant, the app) — username = the topic
 #    serial, so the pattern rule confines each to Enertek/<serial>/#.
-#  * the shared BATTERY firmware login — the gateway daemon authenticates with a
+#  * the BATTERY firmware login — the gateway daemon authenticates with a
 #    fixed username baked into its firmware (NOT its serial), so it can't be
 #    scoped by the pattern. It gets explicit readwrite on each configured
 #    serial's topics instead. Leave battery_login blank if no battery connects
@@ -52,7 +52,7 @@ while [ "$i" -lt "$count" ]; do
     i=$((i + 1))
 done
 
-# --- shared battery firmware login -------------------------------------------
+# --- battery firmware login --------------------------------------------------
 bl_user=$(jq -r '.battery_login.username // ""' "$OPTS")
 bl_pass=$(jq -r '.battery_login.password // ""' "$OPTS")
 if [ -n "$bl_user" ] && [ "$bl_user" != "null" ] \

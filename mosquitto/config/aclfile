@@ -2,8 +2,7 @@
 #
 # A device's MQTT username is set to its topic serial (the <serial> in
 # Enertek/<serial>/...). This one pattern rule therefore confines EVERY device
-# to its own serial's topics — no device can read or write another's. This is
-# the fix for the cross-tenant exposure in Enertek's broker.
+# to its own serial's topics — no device can read or write another's.
 pattern readwrite Enertek/%u/#
 
 # A monitoring/control client (Home Assistant, the app) on a SINGLE-user

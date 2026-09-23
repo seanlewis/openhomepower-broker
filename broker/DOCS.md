@@ -1,74 +1,214 @@
 # OpenHomepower Secure Broker
 
-A secure MQTT broker for Energizer Homepower batteries. It runs **alongside**
-the default Mosquitto add-on (on its own port, `1885`), so it never touches the
-broker Zigbee2MQTT uses — and it gives each battery **its own credentials** and
-**its own isolated topics**, so your battery no longer depends on the vendor
-cloud.
+Run your Energizer Homepower battery's MQTT connection through your own Home
+Assistant instead of Enertek's cloud. Once it's set up, monitoring **and**
+control keep working when Enertek's servers are down.
 
-## 1. Configure your battery
+This add-on runs **alongside** the standard Mosquitto add-on, on its own port
+(`1885`). It doesn't touch the broker Zigbee2MQTT or anything else uses.
 
-In the **Configuration** tab:
+## Before you start
 
-```yaml
-devices:
-  - serial: "1234567890"              # your MQTT topic serial
-    password: "choose-a-strong-one"   # the login Home Assistant / the app use
-battery_login:
-  username: "..."                     # the login the battery firmware uses
-  password: "..."                     # (see "How the battery logs in" below)
-```
+**What changes when you do this**
 
-- **`devices`** — one entry per battery. `serial` is the topic serial (the
-  `<serial>` in `Enertek/<serial>/…`); `password` is what **Home Assistant and
-  the app** log in with (their username is the serial).
-- **`battery_login`** — the credential the **battery's own firmware** uses. The
-  Homepower gateway authenticates with a fixed username baked into its firmware
-  (it is *not* the serial), so it can't be confined by serial the way clients
-  are. Set it here and the broker grants that login read/write on exactly your
-  configured serial(s) — nothing else. Leave it blank if no battery connects
-  directly (clients only).
+- ✅ Home Assistant can monitor and control the battery with no Enertek cloud in
+  the path.
+- ⚠️ **The Enertek app and web portal stop showing your battery.** It can only
+  talk to one broker, and it will be talking to yours. You can undo this at any
+  time (see [Undo](#undo)).
+- ⚠️ The battery's connection now depends on your Home Assistant machine. If Home
+  Assistant is off, the battery carries on with its current settings, but you
+  can't see or change it until Home Assistant is back.
 
-Find your topic serial on the gateway (SSH in, `homepower` / `123456`):
+**You'll need**
+
+- The [OpenHomepower integration](https://github.com/seanlewis/openhomepower-hass)
+  installed and working. You'll copy two values from it in step 1.
+- Your **Home Assistant IP address**: **Settings → System → Network**. Reserve it
+  in your router (a "DHCP reservation" or "fixed IP") — the battery is pointed at
+  this address, so if it changes, the battery loses its connection.
+- Your **battery's IP address** (the one the integration uses).
+- A computer on the same network with a terminal: **Terminal** on a Mac, or
+  **PowerShell** on Windows 10/11. You'll paste a few commands into it once.
+
+## The easy way: one click
+
+With the OpenHomepower integration **version 0.7.0 or later**:
+
+1. Install this add-on (**Settings → Add-ons → Add-on Store → ⋮ → Repositories**,
+   add `https://github.com/seanlewis/openhomepower-broker`, then install
+   **OpenHomepower Secure Broker**). You don't need to configure it.
+2. **Settings → Devices & Services → OpenHomepower → Configure → Move to local
+   broker.** Check the battery and Home Assistant addresses, then submit.
+
+Home Assistant configures this add-on, points the battery at it, reboots the
+battery's gateway and checks the battery has connected. It takes up to 6 minutes.
+If the battery doesn't connect, the change is undone automatically. To reverse
+it later, use **Move back to Enertek's broker** in the same menu.
+
+## Manual steps (backup)
+
+Use these if the button isn't available or reports a problem. They make exactly
+the same change, so the button's **Move back** can undo a manual move and vice
+versa. Allow about 15 minutes. The battery keeps running normally throughout.
+
+## Step 1 — Copy your battery's details
+
+Do this **before** changing anything else. The integration has already read these
+values from your battery; this is the easiest place to get them.
+
+1. **Settings → Devices & Services → OpenHomepower → Configure.**
+2. Write down these three values (you don't need to save the form):
+   - **Control broker username** and **Control broker password** — the login the
+     battery itself uses to connect to its broker.
+   - **MQTT topic serial** — a 10-digit number identifying your battery's topics.
+     (It's often *not* the serial printed on the battery or shown in the portal.)
+3. Close the form without changing anything.
+
+<details>
+<summary>Fields are blank?</summary>
+
+The integration reads them from the battery over your network. If they're blank,
+Home Assistant can't reach the battery — fix that first (see the integration's
+README, "Check Home Assistant can reach the battery"). Alternatively, read them
+directly from the battery using the SSH steps in step 3, running:
 
 ```sh
+uci show we2 | grep mqtt
 grep -oE 'Enertek/[0-9]+/' /tmp/wemonitor.log | head -1
 ```
 
-**Start** (or restart) the add-on after any change. The log prints a
-`provisioned …` line for each login.
+`we2.mqtt.user` / `we2.mqtt.pwd` are the battery login; the number in
+`Enertek/<number>/` is the topic serial.
 
-### How the battery logs in
+</details>
 
-The gateway daemon's MQTT username and password are **compiled into its
-firmware**, not read from any config file — so you can't change them, and you
-can't repoint the battery with a config edit. Recover them from your gateway
-(the daemon prints its username in the startup log) and put them in
-`battery_login`. The ACL confines that login to your configured serial(s).
+## Step 2 — Configure and start the add-on
 
-## 2. Point the battery at this broker (network redirect)
+1. Install this add-on if you haven't: **Settings → Add-ons → Add-on Store → ⋮
+   (top right) → Repositories**, add
+   `https://github.com/seanlewis/openhomepower-broker`, then find and install
+   **OpenHomepower Secure Broker**.
+2. Open the add-on's **Configuration** tab and enter (switch to **Edit in YAML**
+   from the ⋮ menu if that's easier):
 
-Because the broker host is hardcoded in the firmware, you redirect the battery
-at the **network layer**, not by config — one reversible `iptables` rule on the
-gateway that sends its MQTT traffic to this broker. The exact commands (and how
-to make them persist and roll back) are in the main
-[README](https://github.com/seanlewis/openhomepower-broker#readme) → **Repoint
-the battery**.
+   ```yaml
+   devices:
+     - serial: "1234567890"             # the MQTT topic serial from step 1
+       password: "make-up-a-new-one"    # a NEW password — Home Assistant uses it in step 5
+   battery_login:
+     username: "..."                    # Control broker username from step 1
+     password: "..."                    # Control broker password from step 1
+   ```
 
-## 3. Point the OpenHomepower integration at it
+   - `devices` → `password` is a new password you choose now. Keep it — you'll
+     type it into the integration in step 5.
+   - `battery_login` must be **exactly** what you copied in step 1, or the
+     battery will be refused.
+3. **Save**, then go to the **Info** tab and **Start** the add-on.
+4. Open the **Log** tab. You should see:
 
-In **OpenHomepower → Configure**, set the broker **host** to this Home Assistant
-host, **port `1885`**, and the **username/password** to a `devices` serial and
-its password.
+   ```
+   provisioned client login '1234567890' (confined to Enertek/1234567890/#)
+   provisioned battery login '...'
+   ```
 
-## Notes
+   If either line is missing, re-check the Configuration tab.
 
-- **Plaintext, trusted network only.** The battery's firmware can't do TLS, so
-  the device → broker link is plaintext. Fine on your home LAN. Don't expose
-  1885 to the internet; for remote access use a VPN.
-- **Isolation:** serial-named client logins are confined to `Enertek/<serial>/#`
-  by `pattern readwrite Enertek/%u/#`; the shared battery login is confined to
-  your configured serial(s) by explicit rules. No login can reach another
-  household's topics.
-- Once redirected, monitoring **and** control no longer depend on Enertek's
-  cloud being up.
+## Step 3 — Point the battery at the add-on
+
+The battery's broker address is fixed in its firmware, so it can't be changed in
+a settings screen. Instead you add one network rule on the battery's gateway that
+sends its broker traffic to your Home Assistant. Nothing in the firmware is
+changed, and it's fully reversible.
+
+1. Open Terminal (Mac) or PowerShell (Windows) and connect to the battery,
+   replacing `<battery-ip>`:
+
+   ```sh
+   ssh -p 34522 homepower@<battery-ip>
+   ```
+
+   Type `yes` if asked to trust the device, then the password `123456` (nothing
+   appears as you type — that's normal).
+
+2. Paste these three lines, replacing **`<ha-ip>`** (in both places) with your
+   Home Assistant IP address:
+
+   ```sh
+   iptables -t nat -A OUTPUT -p tcp --dport 1884 -j DNAT --to-destination <ha-ip>:1885
+   grep -q 'dport 1884 -j DNAT' /etc/firewall.user || echo "iptables -t nat -A OUTPUT -p tcp --dport 1884 -j DNAT --to-destination <ha-ip>:1885" >> /etc/firewall.user
+   reboot
+   ```
+
+   The first line redirects the traffic, the second keeps the rule after a
+   restart, and the third restarts the gateway so it reconnects cleanly. Your
+   terminal will disconnect — that's expected.
+
+> **Why reboot?** The rule only affects new connections, and restarting just the
+> battery's software on this firmware can leave an old copy running. A reboot
+> gives one clean, redirected connection.
+
+## Step 4 — Check the battery has connected
+
+Wait about two minutes, then open the add-on's **Log** tab. You're looking for a
+line like:
+
+```
+New client connected from <battery-ip>:... as ... (..., u'<battery username>').
+```
+
+That's the battery, now talking to your broker. If it isn't there after five
+minutes, see [Troubleshooting](#troubleshooting).
+
+## Step 5 — Point the integration at the add-on
+
+1. **Settings → Devices & Services → OpenHomepower → Configure.**
+2. Set:
+
+   | Field | Value |
+   | --- | --- |
+   | Control broker host | your Home Assistant IP address |
+   | Control broker port | `1885` |
+   | Control broker username | your topic serial (e.g. `1234567890`) |
+   | Control broker password | the **new** password you chose in step 2 |
+
+3. **Submit.** If the integration uses the MQTT telemetry source, its sensors
+   update within a minute — that confirms the whole path. With the SSH source,
+   sensors don't use the broker; control changes (e.g. application mode) are the
+   check.
+
+You're done. Your battery no longer depends on Enertek's cloud.
+
+## Undo
+
+Connect to the battery as in step 3, then run:
+
+```sh
+sed -i '/--dport 1884 -j DNAT/d' /etc/firewall.user
+reboot
+```
+
+After the reboot the battery reconnects to Enertek, and the app and portal work
+again. Put the original values from step 1 back into the integration's Configure
+screen.
+
+## Troubleshooting
+
+| Symptom | Likely cause and fix |
+| --- | --- |
+| Add-on won't start: port in use | Something else is using port 1885. Stop it, or change the port on the add-on's **Network** section and use that port in steps 3 and 5. |
+| Log shows the battery connecting, then `not authorised` / `bad user name or password` | `battery_login` doesn't match step 1 exactly. Fix it and restart the add-on — no need to touch the battery. |
+| No battery connection in the log | The rule isn't there or points at the wrong address. Reconnect as in step 3 and run `iptables -t nat -S OUTPUT \| grep 1884`: it should show your Home Assistant IP. If Home Assistant's IP has changed, run [Undo](#undo), then step 3 again with the new IP. |
+| `ssh: no matching host key type found` | Your computer's SSH is newer than the battery's. Add `-o HostKeyAlgorithms=+ssh-rsa` after `ssh`. |
+| `Permission denied` when connecting | The password is `123456` unless it has been changed. It must be typed in when prompted. |
+| Control entities unavailable after step 5 | Check the host, port `1885`, username (the topic serial) and password in the integration's Configure screen. |
+
+## Security notes
+
+- **Each login is confined.** Home Assistant logs in as your topic serial and can
+  only reach that serial's topics. The battery's login can only reach the
+  serial(s) you list under `devices`.
+- **Plaintext on your network.** The battery can't do TLS, so its connection to
+  this broker is unencrypted. That's fine on your home network — **never** expose
+  port 1885 to the internet. For remote access, use a VPN such as Tailscale.
