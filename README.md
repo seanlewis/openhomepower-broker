@@ -29,8 +29,8 @@ depend on Enertek's servers.
 | Enertek app and portal | ✅ Work | ❌ Stop showing your battery |
 | Extra moving parts | None | A broker you keep running |
 
-It's fully reversible: one command on the battery puts it back on Enertek's
-cloud.
+It's fully reversible: one click (or one command on the battery) puts it back
+on Enertek's cloud.
 
 ## How it works
 
@@ -42,76 +42,115 @@ firmware**, so there's no setting to repoint it. Setup has two parts:
 2. **Redirect the battery** to it with one reversible network rule on the
    gateway. The firmware won't do it, so the network does.
 
+The Standard install below does both for you in one click.
+
 ## Install
 
-### Home Assistant OS / Supervised — add-on (recommended)
+**Most people want the Standard install.** Only use an Advanced option if you
+can't run Home Assistant add-ons (for example Home Assistant Container), or you
+want the broker on a different machine.
 
-**One click:** install the add-on, then in Home Assistant go to **OpenHomepower
-→ Configure → Move to local broker** (integration 0.7.0 or later). It configures
-the add-on, redirects the battery, checks it connected, and undoes everything if
-not.
+<details open>
+<summary><b>⭐ Standard install — start here</b> (Home Assistant OS / Supervised, about 10 minutes)</summary>
 
-**Manual backup:** the step-by-step guide in the add-on's **Documentation** tab
-does the same by hand. It's also here: [`broker/DOCS.md`](broker/DOCS.md).
+&nbsp;
 
-In short: **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, add
-`https://github.com/seanlewis/openhomepower-broker`, and install **OpenHomepower
-Secure Broker**. It listens on port **1885**, clear of the standard Mosquitto
-add-on (1883/1884/8883/8884), so Zigbee2MQTT and anything else on that broker
-are unaffected.
+**You'll need:** the [OpenHomepower integration](https://github.com/seanlewis/openhomepower-hass)
+**0.7.0 or later**, already set up and working.
 
-### Docker (Proxmox VM/LXC, NAS, any Linux)
+1. **Add this repository to Home Assistant.**
+   **Settings → Add-ons → Add-on Store → ⋮ (top right) → Repositories**, paste
+   `https://github.com/seanlewis/openhomepower-broker`, and click **Add**.
+2. **Install the add-on.** Find **OpenHomepower Secure Broker** in the store
+   (refresh the page if it isn't there yet) and click **Install**. You don't
+   need to configure it.
+3. **Reserve Home Assistant's IP address** in your router (a "DHCP reservation"
+   or "fixed IP"). The battery will be pointed at this address.
+4. **Move the battery.** **Settings → Devices & Services → OpenHomepower →
+   Configure → Move to local broker.** Check the two addresses and click
+   **Submit**.
 
-1. **Get your battery's details.** In Home Assistant, **OpenHomepower →
-   Configure → Settings** shows the **Control broker username/password** (the battery's own
-   login) and the **MQTT topic serial**. Copy them before changing anything. No
-   Home Assistant? See [Reading the details from the battery](#reading-the-details-from-the-battery).
-2. **Start the broker:** `docker compose up -d` (listens on **1883**).
-3. **Add a client login** for Home Assistant or the app:
-   `./provision-device.sh <topic-serial>`. It prints the generated password.
+It takes up to 6 minutes. When it says **Done**, your battery is on your own
+broker and Home Assistant has switched over. If the battery doesn't connect, the
+change is undone automatically and the message says why.
+
+- **To undo:** **Configure → Move back to Enertek's broker.**
+- **Before stopping or removing the add-on**, move back first, because while
+  moved the add-on is your battery's only broker.
+- **If the button reports a problem**, the add-on's **Documentation** tab (also
+  [`broker/DOCS.md`](broker/DOCS.md)) has the same steps to do by hand.
+
+The add-on uses port **1885**, so it never clashes with the standard Mosquitto
+add-on or Zigbee2MQTT.
+
+</details>
+
+<details>
+<summary><b>Advanced: Docker</b> (Home Assistant Container, Proxmox VM/LXC, NAS, any Linux)</summary>
+
+&nbsp;
+
+There's no button for this route, so the battery is redirected by hand.
+
+1. **Copy your battery's details.** In Home Assistant, **OpenHomepower →
+   Configure → Settings** shows the **Control broker username/password** (the
+   battery's own login) and the **MQTT topic serial**. Copy them before changing
+   anything. No Home Assistant? See *Reading the details from the battery*
+   below.
+2. **Start the broker:** `docker compose up -d`. It listens on port **1883**.
+3. **Add a login for Home Assistant (or the app):**
+   `./provision-device.sh <topic-serial>`. It prints the password it generated.
 4. **Add the battery's login:**
 
    ```sh
    docker compose exec mosquitto mosquitto_passwd -b /mosquitto/config/passwordfile <battery-username> <battery-password>
    ```
 
-   and append to `mosquitto/config/aclfile`:
+   append these two lines to `mosquitto/config/aclfile`:
 
    ```conf
    user <battery-username>
    topic readwrite Enertek/<topic-serial>/#
    ```
 
-   Then `docker compose restart mosquitto`.
-5. **[Redirect the battery](#redirect-the-battery)**, using this machine's IP and
-   port `1883`.
-6. **Point your clients at it:** host = this machine, port `1883`, username = the
-   topic serial, password = from step 3.
+   then run `docker compose restart mosquitto`.
+5. **Redirect the battery** using the commands in *Redirecting the battery by
+   hand* below, with this machine's IP and port `1883`.
+6. **Point Home Assistant at it:** **OpenHomepower → Configure → Settings**,
+   and set the broker host to this machine, port `1883`, username to the topic
+   serial and password to the one from step 3.
 
-### Native (Debian, Raspberry Pi OS, LXC)
+</details>
 
-`apt install mosquitto`, copy `mosquitto/config/*` into `/etc/mosquitto/conf.d/`
-(adjusting the `/mosquitto/` paths), then follow the Docker steps from step 3,
-using `mosquitto_passwd` directly and `systemctl restart mosquitto`.
+<details>
+<summary><b>Advanced: native Mosquitto</b> (Debian, Raspberry Pi OS, LXC)</summary>
 
-## Redirect the battery
+&nbsp;
 
-> Do this **after** the broker is running with the battery's login, or the
-> battery will be refused. The add-on guide has these same steps with more
-> detail.
+Run `apt install mosquitto` and copy `mosquitto/config/*` into
+`/etc/mosquitto/conf.d/`, adjusting the `/mosquitto/` paths. Then follow the
+**Docker** steps from step 3, using `mosquitto_passwd` directly and
+`systemctl restart mosquitto` in place of the `docker compose` commands.
 
-Reserve your broker machine's IP in your router first: the battery is pointed at
-that address.
+</details>
 
-Connect from a terminal (**Terminal** on a Mac, **PowerShell** on Windows); the
-password is `123456`:
+<details>
+<summary><b>Redirecting the battery by hand</b> (for the Advanced options, or if the button can't be used)</summary>
+
+&nbsp;
+
+Only do this **after** your broker is running with the battery's login, or the
+battery will be refused. Reserve the broker machine's IP in your router first.
+
+**1. Connect to the battery** from a terminal (**Terminal** on a Mac,
+**PowerShell** on Windows). The password is `123456`:
 
 ```sh
 ssh -p 34522 homepower@<battery-ip>
 ```
 
-Then run, replacing `<broker-ip>:<port>` in both places (e.g.
-`192.168.1.50:1885` for the add-on, `192.168.1.50:1883` for Docker):
+**2. Run these three lines,** replacing `<broker-ip>:<port>` in both places
+(for example `192.168.1.50:1883` for Docker, or `:1885` for the add-on):
 
 ```sh
 iptables -t nat -A OUTPUT -p tcp --dport 1884 -j DNAT --to-destination <broker-ip>:<port>
@@ -119,37 +158,41 @@ grep -q 'dport 1884 -j DNAT' /etc/firewall.user || echo "iptables -t nat -A OUTP
 reboot
 ```
 
-The first line redirects the battery's outbound MQTT (port 1884) to your broker,
-the second makes it survive restarts (OpenWrt runs `/etc/firewall.user` at every
-boot), and the reboot gives one clean, redirected connection. Restarting only the
-battery's software on this firmware can leave an old copy running, so reboot.
+The first line redirects the battery's MQTT traffic to your broker, the second
+keeps the rule after restarts, and the reboot makes the battery reconnect
+cleanly. They're safe to run more than once.
 
-**Check it worked:** your broker's log should show a client connecting from the
-battery's IP with the battery's username. The gateway's own log still names
-Enertek's server — it doesn't know it's been redirected.
+**3. Check it worked:** after a couple of minutes, your broker's log should show
+a client connecting from the battery's IP with the battery's username.
 
-**Undo:**
+**To undo,** connect again and run:
 
 ```sh
 sed -i '/--dport 1884 -j DNAT/d' /etc/firewall.user
 reboot
 ```
 
-### Reading the details from the battery
+#### Reading the details from the battery
 
-If you can't get them from the integration, connect as above and run:
+If you can't get the login and topic serial from the integration, connect as
+above and run:
 
 ```sh
 uci show we2 | grep mqtt
 grep -oE 'Enertek/[0-9]+/' /tmp/wemonitor.log | head -1
 ```
 
-`we2.mqtt.user` / `we2.mqtt.pwd` are the battery's login; the number in
+`we2.mqtt.user` and `we2.mqtt.pwd` are the battery's login. The number in
 `Enertek/<number>/` is the topic serial.
 
-**SSH troubleshooting:** `no matching host key type found` → add
-`-o HostKeyAlgorithms=+ssh-rsa` after `ssh`. `Permission denied` → the password
-must be typed at the prompt.
+#### SSH problems
+
+- `no matching host key type found`: add `-o HostKeyAlgorithms=+ssh-rsa` after
+  `ssh`.
+- `Permission denied`: type the password at the prompt (it's `123456` unless
+  it's been changed).
+
+</details>
 
 ## Security
 
