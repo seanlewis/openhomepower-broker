@@ -63,7 +63,7 @@ are unaffected.
 ### Docker (Proxmox VM/LXC, NAS, any Linux)
 
 1. **Get your battery's details.** In Home Assistant, **OpenHomepower →
-   Configure** shows the **Control broker username/password** (the battery's own
+   Configure → Settings** shows the **Control broker username/password** (the battery's own
    login) and the **MQTT topic serial**. Copy them before changing anything. No
    Home Assistant? See [Reading the details from the battery](#reading-the-details-from-the-battery).
 2. **Start the broker:** `docker compose up -d` (listens on **1883**).

@@ -46,6 +46,16 @@ battery's gateway and checks the battery has connected. It takes up to 6 minutes
 If the battery doesn't connect, the change is undone automatically. To reverse
 it later, use **Move back to Enertek's broker** in the same menu.
 
+If a step fails, the message says which one. **Settings → System → Logs**
+(search `openhomepower`) and this add-on's **Log** tab have the detail.
+
+## Stopping or removing this add-on
+
+While your battery is moved here, this add-on **is** its broker. If you stop or
+uninstall it, the battery keeps running on its current settings but Home
+Assistant loses control of it (and, on MQTT-only units, its readings). **Move
+back to Enertek's broker first**, then stop or remove the add-on.
+
 ## Manual steps (backup)
 
 Use these if the button isn't available or reports a problem. They make exactly
@@ -57,7 +67,7 @@ versa. Allow about 15 minutes. The battery keeps running normally throughout.
 Do this **before** changing anything else. The integration has already read these
 values from your battery; this is the easiest place to get them.
 
-1. **Settings → Devices & Services → OpenHomepower → Configure.**
+1. **Settings → Devices & Services → OpenHomepower → Configure → Settings.**
 2. Write down these three values (you don't need to save the form):
    - **Control broker username** and **Control broker password** — the login the
      battery itself uses to connect to its broker.
@@ -163,7 +173,7 @@ minutes, see [Troubleshooting](#troubleshooting).
 
 ## Step 5 — Point the integration at the add-on
 
-1. **Settings → Devices & Services → OpenHomepower → Configure.**
+1. **Settings → Devices & Services → OpenHomepower → Configure → Settings.**
 2. Set:
 
    | Field | Value |
@@ -190,19 +200,20 @@ reboot
 ```
 
 After the reboot the battery reconnects to Enertek, and the app and portal work
-again. Put the original values from step 1 back into the integration's Configure
-screen.
+again. Put the original values from step 1 back into the integration's
+**Configure → Settings** screen.
 
 ## Troubleshooting
 
 | Symptom | Likely cause and fix |
 | --- | --- |
+| Add-on stops straight after starting (its Log ends with `running mosquitto as user: mosquitto`, then stops) | You're on version 0.2.1, which has a bug. **Update the add-on** to 0.2.2 or later. |
 | Add-on won't start: port in use | Something else is using port 1885. Stop it, or change the port on the add-on's **Network** section and use that port in steps 3 and 5. |
 | Log shows the battery connecting, then `not authorised` / `bad user name or password` | `battery_login` doesn't match step 1 exactly. Fix it and restart the add-on — no need to touch the battery. |
 | No battery connection in the log | The rule isn't there or points at the wrong address. Reconnect as in step 3 and run `iptables -t nat -S OUTPUT \| grep 1884`: it should show your Home Assistant IP. If Home Assistant's IP has changed, run [Undo](#undo), then step 3 again with the new IP. |
 | `ssh: no matching host key type found` | Your computer's SSH is newer than the battery's. Add `-o HostKeyAlgorithms=+ssh-rsa` after `ssh`. |
 | `Permission denied` when connecting | The password is `123456` unless it has been changed. It must be typed in when prompted. |
-| Control entities unavailable after step 5 | Check the host, port `1885`, username (the topic serial) and password in the integration's Configure screen. |
+| Control entities unavailable after step 5 | Check the host, port `1885`, username (the topic serial) and password in the integration's **Configure → Settings** screen. |
 
 ## Security notes
 
