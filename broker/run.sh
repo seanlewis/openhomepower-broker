@@ -17,8 +17,17 @@ PWFILE=/data/passwordfile
 ACLFILE=/etc/openhomepower/aclfile
 BLTOPICS=/tmp/ohp_battery_topics       # per-serial rules for the battery login
 
-: > "$PWFILE"
-chmod 600 "$PWFILE"          # mosquitto refuses a world-readable password file
+# Mosquitto runs as the unprivileged `mosquitto` user and opens these files as
+# that user, so they must be owned by it (and private to it). Root-owned 0600
+# made the password file unreadable: mosquitto exited at start and nothing
+# listened on 1885. Persistence gets its own mosquitto-owned directory for the
+# same reason (/data itself is root-owned).
+mkdir -p /data/mosquitto
+chown mosquitto:mosquitto /data/mosquitto
+# Rebuilt from scratch each start: root writes it (mosquitto_passwd warns about a
+# file root doesn't own), then it's handed to mosquitto just before launch.
+rm -f "$PWFILE"
+(umask 077; : > "$PWFILE")
 : > "$BLTOPICS"
 
 # --- ACL header: serial-named clients confined by the pattern ----------------
@@ -63,4 +72,6 @@ if [ "$count" -eq 0 ]; then
 fi
 
 rm -f "$BLTOPICS"
+chown mosquitto:mosquitto "$PWFILE" "$ACLFILE"
+chmod 600 "$PWFILE" "$ACLFILE"
 exec mosquitto -c /etc/openhomepower/mosquitto.conf
